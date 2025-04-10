@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: acpCw2Service
+
+
+info:
+  app:
+    name: ACP CW2
+    description: Simple ACP CW2 service
+    version: 0.0.3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info, health, env
+  info:
+    env:
+      enabled: true
+
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+server:
+  port: 8080
+

@@ -14,5 +14,26 @@ POST http://127.0.0.1:8080/kafka/sendStockSymbols/stockvalues/1000
 GET http://127.0.0.1:8080/kafka/receiveStockSymbols/stockvalues/6000
 ###
 
+### send 3 test JSON messages to RabbitMQ
+PUT http://127.0.0.1:8080/rabbitMq/testQueue/3
+###
 
+### send 3 test JSON messages to RabbitMQ
+PUT http://127.0.0.1:8080/rabbitMq/another/0
+###
+
+### send 3 test JSON messages to RabbitMQ
+PUT http://127.0.0.1:8080/rabbitMq/third/1000
+###
+
+### Task 2: GET messages from queue
+GET http://127.0.0.1:8080/rabbitMq/third/100
+###
+
+### Task 3: PUT 5 messages into Kafka topic "stockvalues"
+PUT http://127.0.0.1:8080/kafka/stockvalues/10
+###
+
+### Task: GET messages from Kafka topic
+GET http://localhost:8080/kafka/stockvalues/5000
 ###

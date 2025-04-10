@@ -7,6 +7,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
 import redis.clients.jedis.Jedis;
@@ -28,7 +30,7 @@ import java.util.concurrent.TimeoutException;
  * and supports security configurations such as SASL and JAAS.
  */
 @RestController()
-@RequestMapping("/api/v1/kafka")
+@RequestMapping("/kafka")
 public class KafkaController {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaController.class);
@@ -121,4 +123,60 @@ public class KafkaController {
 
         return result;
     }
+
+    @PutMapping("/{writeTopic}/{messageCount}")
+    public ResponseEntity<String> putMessagesToKafka(
+            @PathVariable String writeTopic,
+            @PathVariable int messageCount) {
+
+        Properties kafkaProps = getKafkaProperties(environment);
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(kafkaProps)) {
+
+            for (int i = 0; i < messageCount; i++) {
+                String payload = String.format("{\"uid\":\"s2225957\",\"counter\":%d}", i);
+                ProducerRecord<String, String> record = new ProducerRecord<>(writeTopic, payload);
+                producer.send(record).get(1000, TimeUnit.MILLISECONDS);
+            }
+
+            return ResponseEntity.ok().build();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{readTopic}/{timeoutInMsec}")
+    public ResponseEntity<List<String>> readMessagesFromKafka(
+            @PathVariable String readTopic,
+            @PathVariable long timeoutInMsec) {
+
+        long deadline = System.currentTimeMillis() + timeoutInMsec;
+        List<String> result = new ArrayList<>();
+
+        Properties kafkaProps = getKafkaProperties(environment);
+
+        // instructor-approved: unique group + start from beginning
+        kafkaProps.put("group.id", UUID.randomUUID().toString());
+        kafkaProps.setProperty("auto.offset.reset", "earliest");
+
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProps)) {
+            consumer.subscribe(Collections.singletonList(readTopic));
+
+            while (System.currentTimeMillis() < deadline) {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(200));
+                for (ConsumerRecord<String, String> record : records) {
+                    result.add(record.value());
+                }
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();  // prevent 500s
+        }
+
+        return ResponseEntity.ok(result);  //
+    }
+
+
+
 }
